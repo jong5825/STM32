@@ -165,3 +165,6 @@ void DS1302_read(void)
                r_year, r_month, r_date, r_hour, r_min, r_sec);
     }
 }
+
+
+//test
