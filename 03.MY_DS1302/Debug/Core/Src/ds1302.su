@@ -1,0 +1,12 @@
+../Core/Src/ds1302.c:11:6:ds_1302_DataLine_Input	32	static
+../Core/Src/ds1302.c:21:6:ds_1302_DataLine_Output	32	static
+../Core/Src/ds1302.c:31:9:bcd2dec	16	static
+../Core/Src/ds1302.c:35:9:dec2bcd	16	static
+../Core/Src/ds1302.c:40:6:ds_1302_clk	8	static
+../Core/Src/ds1302.c:46:6:ds1302_tx	24	static
+../Core/Src/ds1302.c:58:6:ds1302_rx	24	static
+../Core/Src/ds1302.c:78:9:ds1302_read	24	static
+../Core/Src/ds1302.c:88:6:ds1302_write	16	static
+../Core/Src/ds1302.c:99:6:DS1302_Init	8	static
+../Core/Src/ds1302.c:106:6:DS1302_write	24	static
+../Core/Src/ds1302.c:146:6:DS1302_read	40	static

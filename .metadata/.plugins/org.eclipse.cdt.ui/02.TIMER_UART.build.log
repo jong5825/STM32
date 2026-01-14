@@ -1,0 +1,80 @@
+15:30:53 **** Incremental Build of configuration Debug for project 02.TIMER_UART ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:83:8: warning: extra tokens at end of #endif directive [-Wendif-labels]
+   83 | #endif / GNUC */
+      |        ^
+../Core/Src/main.c:82:31: error: conflicting types for 'fputc'; have 'int(int,  FILE)'
+   82 | #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE f)
+      |                               ^~~~~
+../Core/Src/main.c:90:1: note: in expansion of macro 'PUTCHAR_PROTOTYPE'
+   90 | PUTCHAR_PROTOTYPE   // Add for printf
+      | ^~~~~~~~~~~~~~~~~
+In file included from ../Core/Src/main.c:21:
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/stdio.h:220:9: note: previous declaration of 'fputc' with type 'int(int,  FILE *)'
+  220 | int     fputc (int, FILE *);
+      |         ^~~~~
+../Core/Src/main.c: In function 'fputc':
+../Core/Src/main.c:98:1: warning: "/*" within comment [-Wcomment]
+   98 | /**
+      |  
+../Core/Src/main.c:102:5: warning: 'main' is normally a non-static function [-Wmain]
+  102 | int main(void)
+      |     ^~~~
+../Core/Src/main.c:211:13: error: invalid storage class for function 'MX_TIM2_Init'
+  211 | static void MX_TIM2_Init(void)
+      |             ^~~~~~~~~~~~
+../Core/Src/main.c:256:13: error: invalid storage class for function 'MX_TIM10_Init'
+  256 | static void MX_TIM10_Init(void)
+      |             ^~~~~~~~~~~~~
+../Core/Src/main.c:287:13: error: invalid storage class for function 'MX_USART2_UART_Init'
+  287 | static void MX_USART2_UART_Init(void)
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:320:13: error: invalid storage class for function 'MX_GPIO_Init'
+  320 | static void MX_GPIO_Init(void)
+      |             ^~~~~~~~~~~~
+../Core/Src/main.c:392:1: error: expected declaration or statement at end of input
+  392 | }
+      | ^
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:56:13: warning: 'MX_GPIO_Init' used but never defined
+   56 | static void MX_GPIO_Init(void);
+      |             ^~~~~~~~~~~~
+../Core/Src/main.c:57:13: warning: 'MX_USART2_UART_Init' used but never defined
+   57 | static void MX_USART2_UART_Init(void);
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:58:13: warning: 'MX_TIM10_Init' used but never defined
+   58 | static void MX_TIM10_Init(void);
+      |             ^~~~~~~~~~~~~
+../Core/Src/main.c:59:13: warning: 'MX_TIM2_Init' used but never defined
+   59 | static void MX_TIM2_Init(void);
+      |             ^~~~~~~~~~~~
+../Core/Src/main.c: In function 'fputc':
+../Core/Src/main.c:411: warning: control reaches end of non-void function [-Wreturn-type]
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:383:6: warning: 'Error_Handler' defined but not used [-Wunused-function]
+  383 | void Error_Handler(void)
+      |      ^~~~~~~~~~~~~
+../Core/Src/main.c:320:13: warning: 'MX_GPIO_Init' defined but not used [-Wunused-function]
+  320 | static void MX_GPIO_Init(void)
+      |             ^~~~~~~~~~~~
+../Core/Src/main.c:287:13: warning: 'MX_USART2_UART_Init' defined but not used [-Wunused-function]
+  287 | static void MX_USART2_UART_Init(void)
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:256:13: warning: 'MX_TIM10_Init' defined but not used [-Wunused-function]
+  256 | static void MX_TIM10_Init(void)
+      |             ^~~~~~~~~~~~~
+../Core/Src/main.c:211:13: warning: 'MX_TIM2_Init' defined but not used [-Wunused-function]
+  211 | static void MX_TIM2_Init(void)
+      |             ^~~~~~~~~~~~
+../Core/Src/main.c:164:6: warning: 'SystemClock_Config' defined but not used [-Wunused-function]
+  164 | void SystemClock_Config(void)
+      |      ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:102:5: warning: 'main' defined but not used [-Wunused-function]
+  102 | int main(void)
+      |     ^~~~
+make: *** [Core/Src/subdir.mk:43: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+
+15:30:53 Build Failed. 7 errors, 15 warnings. (took 310ms)
+

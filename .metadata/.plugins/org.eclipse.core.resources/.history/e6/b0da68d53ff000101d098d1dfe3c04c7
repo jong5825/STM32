@@ -1,0 +1,11 @@
+#include "uart2.h"
+
+#define COMMAND_NUMBER 20
+#define COMMAND_LENGTH 40
+
+volatile uint8_t rx_buffer[COMMAND_NUMBER][COMMAND_LENGTH];
+volatile int input_index = 0; // rx interupt에서 사용
+volatile int output_index = 0; // user pram에서 사용
+
+
+

@@ -1,0 +1,154 @@
+#include "ds1302.h"
+#include "main.h"
+#include <stdio.h> //printf. gets, fgets
+#include <stdlib.h>
+#include <string.h>
+
+extern char rx_buffer[COMMAND_NUMBER][COMMAND_LENGTH];
+extern volatile int input_index;
+extern volatile int output_index;
+
+
+void ds_1302_clk(void)
+{
+	HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 1);
+	HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 0);
+}
+
+
+void ds1302_tx(uint8_t tx)
+{
+	ds_1302_DataLine_Output();
+
+	for (int i = 0; i < 8; i++)
+	{
+		if(tx&(1<<i))
+		{
+			HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 1);
+		}
+		else
+		{
+			HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 0);
+		}
+		ds_1302_clk();
+	}
+}
+
+void ds1302_rx(uint_t *data8)
+{
+	uint8_t temp=0;
+
+	ds_1302_DataLine_Input();
+
+	for (int i = 0; i < 8; i++)
+	{
+		if(HAL_GPIO_ReadPin(IO_DS1302_GPIO_Port, IO_DS1302_GPIO_Pin))
+		{
+			temp |= 1<<i;
+		}
+		ds_1302_clk();
+	}
+	*data8=temp;
+}
+
+uint8_t ds1302_read(uint8_t addr)
+{
+	uint8_t data8bits=0;
+	HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_GPIO_Pin, 1);
+	ds1302_tx(addr+1);
+	ds1302_rx(&data8bits);
+	HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_GPIO_Pin, 0);
+	return bcd2dec(data8bits);
+	
+}
+
+void ds1302_write(uint8_t addr, uint8_t data)
+{
+	HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_GPIO_Pin, 1);
+	ds1302_tx(addr);
+	ds1302_tx(dec2bcd(data));
+	HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_GPIO_Pin, 0);
+}
+
+void ds1302_main(void)
+{
+    uint32_t prev_time = 0;
+    uint8_t r_year, r_month, r_date, r_hour, r_min, r_sec;
+    char temp_str[5]; // 문자열 파싱용 임시 버퍼
+
+    // [초기 설정] DS1302 Write Protection 해제 (필수)
+    ds1302_write(0x8E, 0x00); 
+
+    printf("DS1302 Time Clock Started...\n");
+
+    while(1)
+    {
+        // (1) 1초에 1회씩 시각정보 출력 (Non-blocking)
+        if (HAL_GetTick() - prev_time >= 1000)
+        {
+            prev_time = HAL_GetTick();
+
+            // 레지스터에서 시간 읽기 (주소: 초=0x80, 분=0x82, 시=0x84, 일=0x86, 월=0x88, 년=0x8C)
+            // ds1302_read 함수 내에서 addr+1을 하여 Read 주소로 변환하므로 Write 주소를 넣습니다.
+            r_sec   = ds1302_read(0x80);
+            r_min   = ds1302_read(0x82);
+            r_hour  = ds1302_read(0x84);
+            r_date  = ds1302_read(0x86); // 일 (Date)
+            r_month = ds1302_read(0x88);
+            r_year  = ds1302_read(0x8C);
+
+            printf("Current Time: 20%02d-%02d-%02d %02d:%02d:%02d\n", 
+                   r_year, r_month, r_date, r_hour, r_min, r_sec);
+        }
+
+        // (2) setrtc250113093400 명령어 처리
+        if (input_index != output_index)
+        {
+            // 명령어 확인: "setrtc"로 시작하는지 체크
+            if (strncmp(rx_buffer[output_index], "setrtc", 6) == 0)
+            {
+                // 포맷: setrtc YY MM DD HH MM SS (총 12자리 숫자)
+                // 인덱스: 012345 67 89 01 23 45 67 
+                
+                // 1. Write Protection 해제 (혹시 잠겼을 경우 대비)
+                ds1302_write(0x8E, 0x00);
+
+                // 2. 년 (YY) 파싱 및 쓰기
+                strncpy(temp_str, &rx_buffer[output_index][6], 2);
+                temp_str[2] = '\0'; // 문자열 끝 처리
+                ds1302_write(0x8C, atoi(temp_str)); 
+
+                // 3. 월 (MM)
+                strncpy(temp_str, &rx_buffer[output_index][8], 2);
+                temp_str[2] = '\0';
+                ds1302_write(0x88, atoi(temp_str));
+
+                // 4. 일 (DD)
+                strncpy(temp_str, &rx_buffer[output_index][10], 2);
+                temp_str[2] = '\0';
+                ds1302_write(0x86, atoi(temp_str));
+
+                // 5. 시 (HH)
+                strncpy(temp_str, &rx_buffer[output_index][12], 2);
+                temp_str[2] = '\0';
+                ds1302_write(0x84, atoi(temp_str));
+
+                // 6. 분 (MM)
+                strncpy(temp_str, &rx_buffer[output_index][14], 2);
+                temp_str[2] = '\0';
+                ds1302_write(0x82, atoi(temp_str));
+
+                // 7. 초 (SS)
+                strncpy(temp_str, &rx_buffer[output_index][16], 2);
+                temp_str[2] = '\0';
+                ds1302_write(0x80, atoi(temp_str));
+                
+                printf(">> Time Set Complete!\n");
+            }
+            
+            // 버퍼 인덱스 갱신
+            output_index++;
+            output_index %= COMMAND_NUMBER;
+        }
+    }
+}

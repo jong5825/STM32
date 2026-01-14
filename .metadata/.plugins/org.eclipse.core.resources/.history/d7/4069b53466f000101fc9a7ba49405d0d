@@ -1,0 +1,166 @@
+#include "ds1302.h"
+#include "main.h"   // [필수] GPIO Pin 정의 포함
+#include <stdio.h>  // printf
+#include <stdlib.h> // atoi
+#include <string.h> // strncmp, strncpy
+
+
+
+
+// I/O 핀을 입력 모드로 변경
+void ds_1302_DataLine_Input(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+// I/O 핀을 출력 모드로 변경
+void ds_1302_DataLine_Output(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+uint8_t bcd2dec(uint8_t bcd) {
+    return ((bcd >> 4) * 10) + (bcd & 0x0F);
+}
+
+uint8_t dec2bcd(uint8_t dec) {
+    return ((dec / 10) << 4) | (dec % 10);
+}
+
+
+void ds_1302_clk(void)
+{
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 1);
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 0);
+}
+
+void ds1302_tx(uint8_t tx)
+{
+    ds_1302_DataLine_Output();
+
+    for (int i = 0; i < 8; i++)
+    {
+        if(tx & (1<<i)) HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 1);
+        else            HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 0);
+        ds_1302_clk();
+    }
+}
+
+void ds1302_rx(uint8_t *data8)
+{
+    uint8_t temp=0;
+    ds_1302_DataLine_Input();
+
+    for (int i = 0; i < 8; i++)
+    {
+        if(HAL_GPIO_ReadPin(IO_DS1302_GPIO_Port, IO_DS1302_Pin))
+        {
+            temp |= (1<<i);
+        }
+        ds_1302_clk();
+    }
+    *data8 = temp;
+}
+
+
+//Read / Write
+
+
+uint8_t ds1302_read(uint8_t addr)
+{
+    uint8_t data8bits=0;
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+    ds1302_tx(addr + 1);
+    ds1302_rx(&data8bits);
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+    return bcd2dec(data8bits);
+}
+
+void ds1302_write(uint8_t addr, uint8_t data)
+{
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+    ds1302_tx(addr);
+    ds1302_tx(dec2bcd(data));
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+}
+
+
+
+
+void DS1302_Init(void)
+{
+    ds1302_write(0x8E, 0x00);
+}
+
+
+void DS1302_SetTimeFromStr(char *cmd_buffer)
+{
+    char temp_str[5];
+
+
+    ds1302_write(0x8E, 0x00);
+
+    // 문자열 파싱 및 DS1302 설정
+    // 년 (Index 6,7)
+    strncpy(temp_str, &cmd_buffer[6], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x8C, atoi(temp_str));
+
+    // 월 (Index 8,9)
+    strncpy(temp_str, &cmd_buffer[8], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x88, atoi(temp_str));
+
+    // 일 (Index 10,11)
+    strncpy(temp_str, &cmd_buffer[10], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x86, atoi(temp_str));
+
+    // 시 (Index 12,13)
+    strncpy(temp_str, &cmd_buffer[12], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x84, atoi(temp_str));
+
+    // 분 (Index 14,15)
+    strncpy(temp_str, &cmd_buffer[14], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x82, atoi(temp_str));
+
+    // 초 (Index 16,17)
+    strncpy(temp_str, &cmd_buffer[16], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x80, atoi(temp_str));
+
+}
+
+void DS1302_CheckAndPrint(void)
+{
+    static uint32_t prev_time = 0;
+    uint8_t r_year, r_month, r_date, r_hour, r_min, r_sec;
+
+    // 1000ms(1초)가 지났는지 확인
+    if (HAL_GetTick() - prev_time >= 1000)
+    {
+        prev_time = HAL_GetTick();
+
+        // 시간 읽기
+        r_sec   = ds1302_read(0x80);
+        r_min   = ds1302_read(0x82);
+        r_hour  = ds1302_read(0x84);
+        r_date  = ds1302_read(0x86);
+        r_month = ds1302_read(0x88);
+        r_year  = ds1302_read(0x8C);
+
+        printf("Time: 20%02d-%02d-%02d %02d:%02d:%02d\n",
+               r_year, r_month, r_date, r_hour, r_min, r_sec);
+    }
+}

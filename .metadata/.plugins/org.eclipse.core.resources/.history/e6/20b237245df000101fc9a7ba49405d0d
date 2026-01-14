@@ -1,0 +1,105 @@
+#include "ds1302.h"
+#include "main.h"   // [중요] COMMAND_NUMBER, GPIO Pin 정의를 위해 필수
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// [보조 함수] GPIO 방향 변경 함수 (Input <-> Output)
+// 이 함수들이 없으면 링크 에러가 납니다. 아래처럼 구현하세요.
+void ds_1302_DataLine_Input(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin; // main.h에 정의된 이름 확인
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+void ds_1302_DataLine_Output(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+// [보조 함수] BCD 변환 (implicit declaration 경고 해결)
+uint8_t bcd2dec(uint8_t bcd) {
+    return ((bcd >> 4) * 10) + (bcd & 0x0F);
+}
+
+uint8_t dec2bcd(uint8_t dec) {
+    return ((dec / 10) << 4) | (dec % 10);
+}
+
+// ---------------------------------------------------------
+
+void ds_1302_clk(void)
+{
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 1);
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 0);
+}
+
+void ds1302_tx(uint8_t tx)
+{
+    ds_1302_DataLine_Output(); // 함수 호출
+
+    for (int i = 0; i < 8; i++)
+    {
+        if(tx & (1<<i))
+        {
+            HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 1);
+        }
+        else
+        {
+            HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 0);
+        }
+        ds_1302_clk();
+    }
+}
+
+// [수정] uint_t -> uint8_t 로 변경
+void ds1302_rx(uint8_t *data8)
+{
+    uint8_t temp=0;
+
+    ds_1302_DataLine_Input(); // 함수 호출
+
+    for (int i = 0; i < 8; i++)
+    {
+        // [확인] IO_DS1302_GPIO_Pin 이 아니라 IO_DS1302_Pin 일 확률이 높음 (main.h 확인)
+        if(HAL_GPIO_ReadPin(IO_DS1302_GPIO_Port, IO_DS1302_Pin))
+        {
+            temp |= 1<<i;
+        }
+        ds_1302_clk();
+    }
+    *data8 = temp;
+}
+
+uint8_t ds1302_read(uint8_t addr)
+{
+    uint8_t data8bits=0;
+    // [수정] CE_DS1302_GPIO_Pin -> CE_DS1302_Pin (보통 CubeMX 정의 이름)
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+
+    ds1302_tx(addr+1);
+    ds1302_rx(&data8bits);
+
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+
+    return bcd2dec(data8bits);
+}
+
+void ds1302_write(uint8_t addr, uint8_t data)
+{
+    // [수정] CE_DS1302_GPIO_Pin -> CE_DS1302_Pin
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+
+    ds1302_tx(addr);
+    ds1302_tx(dec2bcd(data));
+
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+}

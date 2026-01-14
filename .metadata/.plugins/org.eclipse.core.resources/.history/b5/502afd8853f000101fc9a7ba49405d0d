@@ -1,0 +1,6 @@
+#include "ds1302.h"
+
+void ds1302_main(void)
+{
+
+}

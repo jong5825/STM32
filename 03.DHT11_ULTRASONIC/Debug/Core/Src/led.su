@@ -1,0 +1,9 @@
+../Core/Src/led.c:12:6:led_all_on	4	static
+../Core/Src/led.c:27:6:led_all_off	4	static
+../Core/Src/led.c:45:6:led_up_on	8	static
+../Core/Src/led.c:64:6:led_down_on	8	static
+../Core/Src/led.c:91:6:led_flower_on	4	static
+../Core/Src/led.c:115:6:led_flower_off	4	static
+../Core/Src/led.c:143:6:led_keepon_up	16	static
+../Core/Src/led.c:155:6:led_keepon_down	16	static
+../Core/Src/led.c:180:6:led_main	8	static

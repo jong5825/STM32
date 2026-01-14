@@ -1,0 +1,179 @@
+#include "ds1302.h"
+#include "main.h"   // [필수] GPIO Pin 정의 포함
+#include <stdio.h>  // printf
+#include <stdlib.h> // atoi
+#include <string.h> // strncmp, strncpy
+
+// [변경] ds1302.c는 이제 uart rx_buffer나 index를 몰라도 됩니다.
+// 필요한 데이터는 함수 인자로 전달받습니다.
+
+// ====================================================
+// 1. 내부 헬퍼 함수 (GPIO, BCD - 기존 코드 유지)
+// ====================================================
+
+// I/O 핀을 입력 모드로 변경
+void ds_1302_DataLine_Input(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+// I/O 핀을 출력 모드로 변경
+void ds_1302_DataLine_Output(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+uint8_t bcd2dec(uint8_t bcd) {
+    return ((bcd >> 4) * 10) + (bcd & 0x0F);
+}
+
+uint8_t dec2bcd(uint8_t dec) {
+    return ((dec / 10) << 4) | (dec % 10);
+}
+
+// ====================================================
+// 2. 하드웨어 제어 함수 (CLK, TX, RX - 기존 코드 유지)
+// ====================================================
+
+void ds_1302_clk(void)
+{
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 1);
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 0);
+}
+
+void ds1302_tx(uint8_t tx)
+{
+    ds_1302_DataLine_Output();
+
+    for (int i = 0; i < 8; i++)
+    {
+        if(tx & (1<<i)) HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 1);
+        else            HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 0);
+        ds_1302_clk();
+    }
+}
+
+void ds1302_rx(uint8_t *data8)
+{
+    uint8_t temp=0;
+    ds_1302_DataLine_Input();
+
+    for (int i = 0; i < 8; i++)
+    {
+        if(HAL_GPIO_ReadPin(IO_DS1302_GPIO_Port, IO_DS1302_Pin))
+        {
+            temp |= (1<<i);
+        }
+        ds_1302_clk();
+    }
+    *data8 = temp;
+}
+
+// ====================================================
+// 3. 상위 레벨 함수 (Read / Write - 기존 코드 유지)
+// ====================================================
+
+uint8_t ds1302_read(uint8_t addr)
+{
+    uint8_t data8bits=0;
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+    ds1302_tx(addr + 1);
+    ds1302_rx(&data8bits);
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+    return bcd2dec(data8bits);
+}
+
+void ds1302_write(uint8_t addr, uint8_t data)
+{
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+    ds1302_tx(addr);
+    ds1302_tx(dec2bcd(data));
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+}
+
+// ====================================================
+// 4. [NEW] 수정된 메인 동작 함수들
+// ====================================================
+
+// (1) 초기화 함수 : main()의 while문 들어가기 전에 한 번 호출
+void DS1302_Init(void)
+{
+    ds1302_write(0x8E, 0x00); // Write Protection 해제
+    printf("DS1302 System Initialized.\n");
+}
+
+// (2) 시간 설정 함수 : uart2.c 에서 setrtc 문자열을 받으면 호출
+// 인자: "setrtc251218093400" 같은 전체 문자열 포인터
+void DS1302_SetTimeFromStr(char *cmd_buffer)
+{
+    char temp_str[5];
+
+    // 안전장치: Write Protection 해제
+    ds1302_write(0x8E, 0x00);
+
+    // 문자열 파싱 및 DS1302 설정
+    // 년 (Index 6,7)
+    strncpy(temp_str, &cmd_buffer[6], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x8C, atoi(temp_str));
+
+    // 월 (Index 8,9)
+    strncpy(temp_str, &cmd_buffer[8], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x88, atoi(temp_str));
+
+    // 일 (Index 10,11)
+    strncpy(temp_str, &cmd_buffer[10], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x86, atoi(temp_str));
+
+    // 시 (Index 12,13)
+    strncpy(temp_str, &cmd_buffer[12], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x84, atoi(temp_str));
+
+    // 분 (Index 14,15)
+    strncpy(temp_str, &cmd_buffer[14], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x82, atoi(temp_str));
+
+    // 초 (Index 16,17)
+    strncpy(temp_str, &cmd_buffer[16], 2);
+    temp_str[2] = 0;
+    ds1302_write(0x80, atoi(temp_str));
+
+}
+
+// (3) 시간 출력 함수 : main()의 while(1) 루프 안에서 계속 호출
+// 내부에서 1초가 지났는지 스스로 체크함 (Blocking 없음)
+void DS1302_CheckAndPrint(void)
+{
+    static uint32_t prev_time = 0;
+    uint8_t r_year, r_month, r_date, r_hour, r_min, r_sec;
+
+    // 1000ms(1초)가 지났는지 확인
+    if (HAL_GetTick() - prev_time >= 1000)
+    {
+        prev_time = HAL_GetTick();
+
+        // 시간 읽기
+        r_sec   = ds1302_read(0x80);
+        r_min   = ds1302_read(0x82);
+        r_hour  = ds1302_read(0x84);
+        r_date  = ds1302_read(0x86);
+        r_month = ds1302_read(0x88);
+        r_year  = ds1302_read(0x8C);
+
+        printf("Time: 20%02d-%02d-%02d %02d:%02d:%02d\n",
+               r_year, r_month, r_date, r_hour, r_min, r_sec);
+    }
+}

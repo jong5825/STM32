@@ -1,0 +1,202 @@
+#include "ds1302.h"
+#include "main.h"   // [필수] GPIO Pin, COMMAND_NUMBER 정의 포함
+#include <stdio.h>  // printf
+#include <stdlib.h> // atoi
+#include <string.h> // strncmp, strncpy
+
+// UART 버퍼 및 인덱스 (main.c에 선언된 변수 참조)
+extern char rx_buffer[COMMAND_NUMBER][COMMAND_LENGTH];
+extern volatile int input_index;
+extern volatile int output_index;
+
+// ====================================================
+// 1. 내부 헬퍼 함수 (GPIO 방향 설정 및 BCD 변환)
+// ====================================================
+
+// I/O 핀을 입력 모드로 변경
+void ds_1302_DataLine_Input(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin; // main.h 확인 필요
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+// I/O 핀을 출력 모드로 변경
+void ds_1302_DataLine_Output(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = IO_DS1302_Pin; // main.h 확인 필요
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(IO_DS1302_GPIO_Port, &GPIO_InitStruct);
+}
+
+// BCD -> Decimal 변환
+uint8_t bcd2dec(uint8_t bcd) {
+    return ((bcd >> 4) * 10) + (bcd & 0x0F);
+}
+
+// Decimal -> BCD 변환
+uint8_t dec2bcd(uint8_t dec) {
+    return ((dec / 10) << 4) | (dec % 10);
+}
+
+// ====================================================
+// 2. 하드웨어 제어 함수 (CLK, TX, RX)
+// ====================================================
+
+void ds_1302_clk(void)
+{
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 1);
+    HAL_GPIO_WritePin(CLK_DS1302_GPIO_Port, CLK_DS1302_Pin, 0);
+}
+
+void ds1302_tx(uint8_t tx)
+{
+    ds_1302_DataLine_Output(); // 출력 모드 설정
+
+    for (int i = 0; i < 8; i++)
+    {
+        if(tx & (1<<i))
+        {
+            HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 1);
+        }
+        else
+        {
+            HAL_GPIO_WritePin(IO_DS1302_GPIO_Port, IO_DS1302_Pin, 0);
+        }
+        ds_1302_clk();
+    }
+}
+
+void ds1302_rx(uint8_t *data8) // uint_t 오타 수정 -> uint8_t
+{
+    uint8_t temp=0;
+
+    ds_1302_DataLine_Input(); // 입력 모드 설정
+
+    for (int i = 0; i < 8; i++)
+    {
+        // 핀 상태 읽기
+        if(HAL_GPIO_ReadPin(IO_DS1302_GPIO_Port, IO_DS1302_Pin))
+        {
+            temp |= (1<<i);
+        }
+        ds_1302_clk();
+    }
+    *data8 = temp;
+}
+
+// ====================================================
+// 3. 상위 레벨 함수 (Read / Write)
+// ====================================================
+
+uint8_t ds1302_read(uint8_t addr)
+{
+    uint8_t data8bits=0;
+    // CE 핀 High
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+
+    ds1302_tx(addr + 1); // Read 주소는 Write 주소 + 1
+    ds1302_rx(&data8bits);
+
+    // CE 핀 Low
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+
+    return bcd2dec(data8bits); // 10진수로 변환하여 리턴
+}
+
+void ds1302_write(uint8_t addr, uint8_t data)
+{
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 1);
+
+    ds1302_tx(addr);
+    ds1302_tx(dec2bcd(data)); // BCD로 변환하여 전송
+
+    HAL_GPIO_WritePin(CE_DS1302_GPIO_Port, CE_DS1302_Pin, 0);
+}
+
+// ====================================================
+// 4. 메인 동작 함수 (스케줄러 역할)
+// ====================================================
+
+void ds1302_main(void)
+{
+    uint32_t prev_time = 0;
+    uint8_t r_year, r_month, r_date, r_hour, r_min, r_sec;
+    char temp_str[5]; // 문자열 파싱용 버퍼
+
+    // [초기 설정] Write Protection 해제 (필수)
+    ds1302_write(0x8E, 0x00);
+
+    printf("DS1302 System Started.\n");
+
+    while(1)
+    {
+        // (1) 1초에 1회씩 시각정보 출력 (Non-blocking)
+        if (HAL_GetTick() - prev_time >= 1000)
+        {
+            prev_time = HAL_GetTick();
+
+            // 시간 읽기 (주소: 초=0x80 ... 년=0x8C)
+            r_sec   = ds1302_read(0x80);
+            r_min   = ds1302_read(0x82);
+            r_hour  = ds1302_read(0x84);
+            r_date  = ds1302_read(0x86);
+            r_month = ds1302_read(0x88);
+            r_year  = ds1302_read(0x8C);
+
+            printf("Time: 20%02d-%02d-%02d %02d:%02d:%02d\n",
+                   r_year, r_month, r_date, r_hour, r_min, r_sec);
+        }
+
+        // (2) setrtc 명령어 처리 (예: setrtc251218093400)
+        if (input_index != output_index)
+        {
+            if (strncmp(rx_buffer[output_index], "setrtc", 6) == 0)
+            {
+                // Write Protection 해제 (안전장치)
+                ds1302_write(0x8E, 0x00);
+
+                // 년 (Index 6,7)
+                strncpy(temp_str, &rx_buffer[output_index][6], 2);
+                temp_str[2] = 0;
+                ds1302_write(0x8C, atoi(temp_str));
+
+                // 월 (Index 8,9)
+                strncpy(temp_str, &rx_buffer[output_index][8], 2);
+                temp_str[2] = 0;
+                ds1302_write(0x88, atoi(temp_str));
+
+                // 일 (Index 10,11)
+                strncpy(temp_str, &rx_buffer[output_index][10], 2);
+                temp_str[2] = 0;
+                ds1302_write(0x86, atoi(temp_str));
+
+                // 시 (Index 12,13)
+                strncpy(temp_str, &rx_buffer[output_index][12], 2);
+                temp_str[2] = 0;
+                ds1302_write(0x84, atoi(temp_str));
+
+                // 분 (Index 14,15)
+                strncpy(temp_str, &rx_buffer[output_index][14], 2);
+                temp_str[2] = 0;
+                ds1302_write(0x82, atoi(temp_str));
+
+                // 초 (Index 16,17)
+                strncpy(temp_str, &rx_buffer[output_index][16], 2);
+                temp_str[2] = 0;
+                ds1302_write(0x80, atoi(temp_str));
+
+                printf(">> Time Updated Successfully!\n");
+            }
+
+            // 명령 처리 후 인덱스 이동
+            output_index++;
+            output_index %= COMMAND_NUMBER;
+        }
+    }
+}

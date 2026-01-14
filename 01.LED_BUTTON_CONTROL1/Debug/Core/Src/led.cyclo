@@ -1,0 +1,8 @@
+../Core/Src/led.c:8:6:led_all_on	1
+../Core/Src/led.c:16:6:led_all_off	1
+../Core/Src/led.c:25:6:led_up_on	2
+../Core/Src/led.c:36:6:led_up_on_reverse	2
+../Core/Src/led.c:46:6:led_keepon_up	2
+../Core/Src/led.c:57:6:led_flower	3
+../Core/Src/led.c:73:6:led_keepon_down	2
+../Core/Src/led.c:86:6:led_main	8

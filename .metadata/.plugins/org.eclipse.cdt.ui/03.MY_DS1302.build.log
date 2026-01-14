@@ -1,0 +1,65 @@
+10:24:03 **** Incremental Build of configuration Debug for project 03.MY_DS1302 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/uart2.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/uart2.d" -MT"Core/Src/uart2.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/uart2.o"
+../Core/Src/uart2.c: In function 'pc_command_processing':
+../Core/Src/uart2.c:50:29: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   50 |         if(strncmp(rx_buffer[output_index], "led_all_on", strlen("led_all_on"))==0)
+      |                    ~~~~~~~~~^~~~~~~~~~~~~~
+In file included from ../Core/Src/uart2.c:3:
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:54:34: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   54 |         else if(strncmp(rx_buffer[output_index], "led_all_off", strlen("led_all_off"))==0)
+      |                         ~~~~~~~~~^~~~~~~~~~~~~~
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:58:34: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   58 |         else if(strncmp(rx_buffer[output_index], "led_up_on", strlen("led_up_on"))==0)
+      |                         ~~~~~~~~~^~~~~~~~~~~~~~
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:62:34: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   62 |         else if(strncmp(rx_buffer[output_index], "led_down_off", strlen("led_down_off"))==0)
+      |                         ~~~~~~~~~^~~~~~~~~~~~~~
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:66:34: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   66 |         else if(strncmp(rx_buffer[output_index], "led_flower_on", strlen("led_flower_on"))==0)
+      |                         ~~~~~~~~~^~~~~~~~~~~~~~
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:70:34: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   70 |         else if(strncmp(rx_buffer[output_index], "led_flower_off", strlen("led_flower_off"))==0)
+      |                         ~~~~~~~~~^~~~~~~~~~~~~~
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:74:34: warning: passing argument 1 of 'strncmp' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
+   74 |         else if(strncmp(rx_buffer[output_index], "setrtc", 6) == 0)
+      |                         ~~~~~~~~~^~~~~~~~~~~~~~
+C:\ST\STM32CubeIDE_1.15.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256\tools\bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/include/string.h:43:19: note: expected 'const char *' but argument is of type 'volatile char *'
+   43 | int      strncmp (const char *, const char *, size_t);
+      |                   ^~~~~~~~~~~~
+../Core/Src/uart2.c:76:21: warning: implicit declaration of function 'DS1302_write' [-Wimplicit-function-declaration]
+   76 |                     DS1302_write((char *)rx_buffer[output_index]);
+      |                     ^~~~~~~~~~~~
+arm-none-eabi-gcc -o "03.MY_DS1302.elf" @"objects.list"   -mcpu=cortex-m4 -T"D:\project\STM32F411RETx\03.MY_DS1302\STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="03.MY_DS1302.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: 03.MY_DS1302.elf
+ 
+arm-none-eabi-size  03.MY_DS1302.elf 
+arm-none-eabi-objdump -h -S 03.MY_DS1302.elf  > "03.MY_DS1302.list"
+   text	   data	    bss	    dec	    hex	filename
+  20540	    104	   2952	  23596	   5c2c	03.MY_DS1302.elf
+Finished building: default.size.stdout
+ 
+Finished building: 03.MY_DS1302.list
+ 
+
+10:24:05 Build Finished. 0 errors, 8 warnings. (took 1s.425ms)
+
